@@ -14,6 +14,7 @@
         <module>currency-app</module>
         <module>account-management-app</module>
         <module>account-management-integrated</module>
+        <module>contracts</module>
     </modules>
 
     <name>consumer-driven-contract</name>
