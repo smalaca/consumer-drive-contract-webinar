@@ -29,7 +29,7 @@ class AccountControllerTest {
     private final AccountRepository accountRepository = mock(AccountRepository.class);
     private final CustomerRepository customerRepository = mock(CustomerRepository.class);
     private final AccountFactory accountFactory = mock(AccountFactory.class);
-    private final AccountController accountController = new AccountController(accountRepository, customerRepository, accountFactory);
+    private final AccountController accountController = new AccountController(accountRepository, customerRepository, accountFactory, currencyApplicationClient);
     private final ContractReader contractReader = new ContractReader();
 
     @Test

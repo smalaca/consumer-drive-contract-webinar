@@ -9,6 +9,9 @@ import com.smalaca.accountmanagement.domain.customer.CustomerRepository;
 import com.smalaca.accountmanagement.infrastructure.api.rest.dto.NewAccountDto;
 import com.smalaca.accountmanagement.infrastructure.api.rest.dto.TransferDto;
 import com.smalaca.accountmanagement.infrastructure.api.rest.exception.CustomerNotFoundException;
+import com.smalaca.accountmanagement.infrastructure.currencyapp.CurrencyApplicationClient;
+import com.smalaca.cdc.contract.Input;
+import com.smalaca.cdc.contract.Output;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -22,11 +25,13 @@ public class AccountController {
     private final AccountRepository accountRepository;
     private final CustomerRepository customerRepository;
     private final AccountFactory accountFactory;
+    private final CurrencyApplicationClient currencyApplicationClient;
 
-    public AccountController(AccountRepository accountRepository, CustomerRepository customerRepository, AccountFactory accountFactory) {
+    public AccountController(AccountRepository accountRepository, CustomerRepository customerRepository, AccountFactory accountFactory, CurrencyApplicationClient currencyApplicationClient) {
         this.accountRepository = accountRepository;
         this.customerRepository = customerRepository;
         this.accountFactory = accountFactory;
+        this.currencyApplicationClient = currencyApplicationClient;
     }
 
     @PostMapping(consumes = "application/json", produces = "application/json")
@@ -49,19 +54,32 @@ public class AccountController {
         Optional<Account> to = accountRepository.findByNumber(transferDto.getTo());
 
         if (from.isPresent() && to.isPresent()) {
-            transfer(from.get(), to.get(), transferDto.getAmount());
-            return "SUCCESS";
+            Output exchange = exchange(from.get(), to.get(), transferDto.getAmount(), transferDto.getDate());
+
+            if (exchange.getError() == null) {
+                transfer(from.get(), to.get(), transferDto.getAmount(), deposit(exchange));
+                return "SUCCESS";
+            }
         }
 
         return "FAILED";
     }
 
-    private void transfer(Account from, Account to, BigDecimal amount) {
+    private void transfer(Account from, Account to, BigDecimal amount, BigDecimal deposit) {
         from.withdraw(amount);
-        to.deposit(amount);
+        to.deposit(deposit);
 
         accountRepository.save(from);
         accountRepository.save(to);
+    }
+
+    private BigDecimal deposit(Output exchange) {
+        return BigDecimal.valueOf(exchange.getAmount());
+    }
+
+    private Output exchange(Account from, Account to, BigDecimal amount, String date) {
+        Input input = new Input(from.asDto().getCurrency(), to.asDto().getCurrency(), amount.longValue(), date);
+        return currencyApplicationClient.exchange(input);
     }
 
     @GetMapping("/{ownerId}")
