@@ -1,7 +1,8 @@
 package com.smalaca.infrastructure.api.rest;
 
-import com.smalaca.accountmanagement.infrastructure.api.rest.dto.ExchangeRequestDto;
 import com.smalaca.accountmanagement.infrastructure.api.rest.dto.ExchangeResponseDto;
+import com.smalaca.infrastructure.api.rest.contract.ExchangeContract;
+import com.smalaca.infrastructure.api.rest.contract.Scenario;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestTemplate;
@@ -9,31 +10,32 @@ import org.springframework.web.client.RestTemplate;
 class CurrenciesServiceIntegrationTest {
     private static final String CURRENCIES_EXCHANGE = "http://localhost:8001/currency/";
     private final RestTemplate restTemplate = new RestTemplate();
+    private final ExchangeContract exchangeContract = new ExchangeContract();
 
     @Test
     void shouldExchangeEurToPln() {
-        ExchangeRequestDto request = new ExchangeRequestDto("EUR", "PLN", 100, "2019-12-24");
+        Scenario scenario = exchangeContract.eurToPln();
 
-        ExchangeResponseDto actual = restTemplate.postForEntity(CURRENCIES_EXCHANGE, request, ExchangeResponseDto.class).getBody();
+        ExchangeResponseDto actual = restTemplate.postForEntity(CURRENCIES_EXCHANGE, scenario.getRequest(), ExchangeResponseDto.class).getBody();
 
-        Assertions.assertThat(actual).isEqualTo(new ExchangeResponseDto(400, null));
+        Assertions.assertThat(actual).isEqualTo(scenario.getResponse());
     }
 
     @Test
     void shouldExchangePlnToUsd() {
-        ExchangeRequestDto request = new ExchangeRequestDto("PLN", "USD", 900, "2020-01-28");
+        Scenario scenario = exchangeContract.plnToUsd();
 
-        ExchangeResponseDto actual = restTemplate.postForEntity(CURRENCIES_EXCHANGE, request, ExchangeResponseDto.class).getBody();
+        ExchangeResponseDto actual = restTemplate.postForEntity(CURRENCIES_EXCHANGE, scenario.getRequest(), ExchangeResponseDto.class).getBody();
 
-        Assertions.assertThat(actual).isEqualTo(new ExchangeResponseDto(1800, null));
+        Assertions.assertThat(actual).isEqualTo(scenario.getResponse());
     }
 
     @Test
     void shouldExchangeUnknown() {
-        ExchangeRequestDto request = new ExchangeRequestDto("RUB", "USD", 900, "2020-01-28");
+        Scenario scenario = exchangeContract.unknownCurrency();
 
-        ExchangeResponseDto actual = restTemplate.postForEntity(CURRENCIES_EXCHANGE, request, ExchangeResponseDto.class).getBody();
+        ExchangeResponseDto actual = restTemplate.postForEntity(CURRENCIES_EXCHANGE, scenario.getRequest(), ExchangeResponseDto.class).getBody();
 
-        Assertions.assertThat(actual).isEqualTo(new ExchangeResponseDto(0, "Could not recognize currency"));
+        Assertions.assertThat(actual).isEqualTo(scenario.getResponse());
     }
 }
